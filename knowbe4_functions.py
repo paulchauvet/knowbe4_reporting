@@ -290,13 +290,13 @@ def get_phishing_campaign_report(pst_id):
     return user_report
 
 
+
 def get_phish_status_by_user(phishing_report, email):
     """This requires a phish report generated from the get_phishing_campaign_report.
-
     If we checked a phishing report and the person entered data or clicked, then return that info.
     If they didn't click, weren't in the report, or we didn't run a phishing report, just return an empty string."""
     if email in phishing_report:
-        # data entered assumes clicked alreayd happened
+        # data entered assumes clicked already happened
         if 'data_entered' in phishing_report[email]:
             if phishing_report[email]['data_entered']:
                 return("This person submitted data, such as a username or password, in a recent last phishing simulation exercise.")
@@ -307,3 +307,68 @@ def get_phish_status_by_user(phishing_report, email):
             return("")
     else:
         return("")
+
+
+#########################
+## Reporting Functions ##
+#########################
+
+
+def generate_report_by_division(user_report):
+    """Generate a report of incomplete training users, by division, then department."""
+    from collections import OrderedDict
+    division_report = {}
+    # Sort by email address, which will in turn sort by last name in the final report if we're using an ordered dictionary.
+    emaillist = list(user_report.keys())
+    emaillist.sort()
+    for email in emaillist:
+        userinfo = user_report[email]
+        division = userinfo['division']
+        # Handle empty division
+        if division == "":
+            division = "Unknown"
+        # Handle empty department
+        department = userinfo['department']
+        if department == "":
+            department = "Unknown"
+        training_info = userinfo['training_info']
+        first_name = userinfo['first_name']
+        last_name = userinfo['last_name']
+        display_name = last_name + ", " + first_name
+        training_status = check_training_compliance(training_info)
+        # first entry of this division
+        if division not in division_report:
+            division_report[division] = {department: OrderedDict({email: {'training_status': training_status, 'first_name': first_name, 'last_name': last_name, 'display_name': display_name}})}
+        # first entry of this department for this division
+        elif department not in division_report[division]:
+            division_report[division][department] = OrderedDict({email: {'training_status': training_status, 'first_name': first_name, 'last_name': last_name, 'display_name': display_name}})
+        # department and division have already been started, append to the list for the given department
+        else:
+            division_report[division][department][email] = {'training_status': training_status, 'first_name': first_name, 'last_name': last_name, 'display_name': display_name}
+    return division_report
+
+def print_division_report(division_report, phishing_report):
+    divisions = list(division_report.keys())
+    divisions.sort()
+    for division in divisions:
+        print("\n\n\nDivision:" + division)
+        print("===============================")
+        departments = list(division_report[division].keys())
+        departments.sort()
+        for department in departments:
+            # Set all-complete as true - at least until it's changed to false.
+            all_completed = True
+            print("\nDepartment: " + department)
+            print("-----------------------------")
+            for email, userinfo in division_report[division][department].items():
+                training_status = userinfo['training_status']
+                display_name = userinfo['display_name']
+                if training_status != "All assigned training complete":
+                    print("{0} ({1}) - Incomplete training: {2}".format(display_name, email, training_status))
+                    all_completed = False
+                    # Have a special addition if they have also recently failed phishing simulations
+                    phishing_status = get_phish_status_by_user(phishing_report, email)
+                    if phishing_status:
+                        print("   Note:" + phishing_status)
+            if all_completed:
+                print("All individuals in this department have completed their assigned training")
