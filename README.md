@@ -1,4 +1,4 @@
-# kb4_scripts
+# knowbe4_reporting
 These are some functions and one or more scripts to aid in security training reporting using the KnowBe4 API.
 
 ## Description
