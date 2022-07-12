@@ -37,6 +37,10 @@ If you use it and find errors or would suggest changes, let me know those too!
 If you have suggestions as to how to do this (insert some completely different
 way) - you may want to fork this or create your own site from scratch for it.
 
+## Requirements
+* Python 3.x
+* A KnowBe4 account and API token
+
 ## Setup and installation
 Two options:
 * Download the knowbe4_functions.py and use some of those functions as needed in your own code from scratch.
