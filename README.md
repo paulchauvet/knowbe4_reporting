@@ -45,6 +45,16 @@ Two options:
 Regardless you will have to put your KnowBe4 token in credentials/knowbe4_token (or update the
 get_kb4_token function to get it elsewhere).  Ensure your credentials directory isn't synced to git repos.
 
+## Usage
+If you use the built in training_report.py function, you will be first be asked which training reports to analyze data from.  This can include all training, or just some (Completed, In Progress, Closed).
+
+You will then be show all training modules (or all those in the status you selected) and can select one or more training modules by their training campaign id.
+
+You can then specify whether you want to also check against a phishing campaign.  This gives additional weight to the reports (for example, John Doe didn't complete their training, and they are also phish prone (hint hint).  Those who have completed their assigned training but are phish prone are NOT included in the report.  My reasoning is to not shame those who are actually trying.
+
+## Future
+* I may generate an additional script to report on people with multiple simulation clicks or data entries in the past year though.
+* I would like to generate a scorecard per-department on training compliance (even if just a percentage).
 
 ## Author
 Paul Chauvet  
