@@ -31,7 +31,7 @@ DIVISION_REPORT = generate_report_by_division(USER_TRAINING_REPORT)
 # Too much of that is organizational specific (primariy the message text) so feel free to write
 # your own version
 # If there's demand - I'll include a cleaned-up version of my own.
-print_division_report()
+print_division_report(DIVISION_REPORT, PHISHING_REPORT)
 
 
 
