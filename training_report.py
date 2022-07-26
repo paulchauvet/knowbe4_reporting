@@ -10,16 +10,45 @@ For us - this info is in our Active Directory for most users, so it is in KnowBe
 If you upload users manually and fill in those values you should be fine as well.
 """
 
-from knowbe4_functions import print_division_report, select_training_campaigns, select_phishing_campaign, \
-                              generate_user_training_report, get_phishing_campaign_report, get_knowbe4_users, \
-                              generate_report_by_division, print_division_report
+from knowbe4_functions import select_training_campaigns, select_phishing_campaigns, generate_user_training_report, \
+                              get_phishing_campaign_report, get_knowbe4_users, generate_report_by_division, \
+                              get_phish_status_by_user
 from collections import OrderedDict
+
+def print_division_report(division_report, phishing_report):
+    """Prints the report - by division and department.
+    For my own environment, I use email instead of printing (with reports sent to each division VP
+    but I haven't had a chance to clean up the stuff there specific to my organization."""
+    divisions = list(division_report.keys())
+    divisions.sort()
+    for division in divisions:
+        print("\n\n\nDivision:" + division)
+        print("===============================")
+        departments = list(division_report[division].keys())
+        departments.sort()
+        for department in departments:
+            # Set all-complete as true - at least until it's changed to false.
+            all_completed = True
+            print("\nDepartment: " + department)
+            print("-----------------------------")
+            for email, userinfo in division_report[division][department].items():
+                training_status = userinfo['training_status']
+                display_name = userinfo['display_name']
+                if training_status != "All assigned training complete":
+                    print("{0} ({1}) - Incomplete training: {2}".format(display_name, email, training_status))
+                    all_completed = False
+                    # Have a special addition if they have also recently failed phishing simulations
+                    phishing_status = get_phish_status_by_user(phishing_report, email)
+                    if phishing_status:
+                        print("   Note:" + phishing_status)
+            if all_completed:
+                print("All individuals in this department have completed their assigned training")
 
 
 CAMPAIGN_IDS = select_training_campaigns()
 
-PHISHING_CAMPAIGN_ID = select_phishing_campaign()
-PHISHING_REPORT = get_phishing_campaign_report(PHISHING_CAMPAIGN_ID)
+PHISHING_CAMPAIGN_IDS = select_phishing_campaigns("All")
+PHISHING_REPORT = get_phishing_campaign_report(PHISHING_CAMPAIGN_IDS)
 
 ACTIVE_USERS = get_knowbe4_users()
 

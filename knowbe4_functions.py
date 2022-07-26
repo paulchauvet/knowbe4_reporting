@@ -84,7 +84,7 @@ def get_knowbe4_users(status_to_check="active"):
     user_report = True
     while user_report:
         print("Getting page {0} of users from the KnowBe4 user api".format(page))
-        # Are we checking all users or only active/archived ones as specified in the function?
+        # Are we checking all users or only active ones?
         if status_to_check == "all":
             users_api = api_connect("users?per_page=500&page={0}".format(page))
         else:
@@ -92,7 +92,11 @@ def get_knowbe4_users(status_to_check="active"):
         user_report = users_api.json()
         for user in user_report:
             email = user['email']
-            user_report_final[email] = user
+            status = user['status']
+            if status_to_check == "all":
+                user_report_final[email] = user
+            elif status_to_check == status:
+                user_report_final[email] = user
         page += 1
     #        
     return user_report_final
@@ -121,9 +125,8 @@ def list_training_campaigns(status_to_check="In Progress"):
             training_list[id] = campaign
         elif campaign['status'] == status_to_check:
             training_list[id] = campaign
-    #
         # If a status to check was provided to the function that doesn't exist
-        # in the response, then all that will be returned is an empty list.
+        # in the response, then all that will be returned, is an empty list.
     return training_list
 
 def get_training_campaign_info(id):
@@ -236,20 +239,21 @@ def list_phishing_campaigns(status_to_check="Active"):
         # in the response, then all that will be returned is an empty list.
     return phishing_list
 
-def select_phishing_campaign():
+def select_phishing_campaigns(status="Active"):
     """Prompt for one or more phishing campaigns to report on - selecting from active campaigns only"""
-    campaigns = list_phishing_campaigns()
+    campaigns = list_phishing_campaigns(status)
+    print("\nPhishing Campaigns")
     for entry in campaigns:
         name, id = entry
         print("Name:", name, "- ID:", id)
-    campaign_id = input("Should we check against a phishing campaign as well? If so - enter the campaign id:  ").strip().replace(" ","")
+    campaign_ids = input("\n\nShould we check against a phishing campaign as well?\nIf so - enter the campaign id (For multiples, separate them by commas):  ").strip().replace(" ","").split(",")
     # If no campaign is selected, just return an empty 
-    if campaign_id == "":
-        campaign_id = {}
-    return campaign_id
+    if campaign_ids == "":
+        campaign_ids = []
+    return campaign_ids
 
-def get_phishing_campaign_report(pst_id):
-    """This will get a report on a given phishing campaign, in json format, for anyone in the
+def get_phishing_campaign_report(pst_ids):
+    """This will get a report on one or more phishing campaigns, in json format, for anyone in the
     Obtain pst_id (phishing security test id) values from list_phishing_campaigns or similar.
     It will return a dictionary with the email addresses as the key, and will have a nested dictionary
     containing the following info:
@@ -258,10 +262,14 @@ def get_phishing_campaign_report(pst_id):
      - whether they clicked the link
      - whether they opened an attachment
      - whether they entered data"""
-    if pst_id:
+    user_report = {}
+    # Gather the info from KnowBe4 for the given campaign id(s)
+    phishing_report_full = []     
+    for pst_id in pst_ids:
+        # Start with page 1 - and initially set this to True so we at least get one page
         page = 1
-        phishing_report_full = []
         phishing_report = True
+        # Get the repot for a given PST campaign
         while phishing_report:
             print("Working on phishing campaign {0}, page {1}".format(pst_id, page))
             phishing_report_api = api_connect("/phishing/security_tests/{0}/recipients?per_page=500&page={1}".format(pst_id, page))
@@ -270,43 +278,47 @@ def get_phishing_campaign_report(pst_id):
             if phishing_report != []:
                 phishing_report_full += phishing_report
                 page += 1
-        
-        user_report = {}
-        for user_info in phishing_report_full:
-            try:
-                email = user_info['user']['email']
-                attachment_opened = user_info['attachment_opened_at']
-                clicked = user_info['clicked_at']
-                data_entered = user_info['data_entered_at']        
-                delivered = user_info['delivered_at']
-                reported = user_info['reported_at']
-                user_report[email] = {'attachment_opened': attachment_opened, 'clicked': clicked, 'data_entered': data_entered, 'delivered': delivered, 'reported': reported}
-            except:
-                print("error with user", user_info)
-    # Just send back a blank dictionary if no campaign is selected
-    else:
-        user_report = {}
+    #    
+    for user_info in phishing_report_full:
+        email = user_info['user']['email']
+        attachment_opened = user_info['attachment_opened_at']
+        clicked = user_info['clicked_at']
+        data_entered = user_info['data_entered_at']        
+        delivered = user_info['delivered_at']
+        reported = user_info['reported_at']
+        campaign_id = user_info['pst_id']
+        if email in user_report:
+            user_report[email][campaign_id] = {'attachment_opened': attachment_opened, 'clicked': clicked, 'data_entered': data_entered, 'delivered': delivered, 'reported': reported}
+        else:
+            user_report[email] = {campaign_id: {'attachment_opened': attachment_opened, 'clicked': clicked, 'data_entered': data_entered, 'delivered': delivered, 'reported': reported}}
 
     return user_report
 
 
-
 def get_phish_status_by_user(phishing_report, email):
     """This requires a phish report generated from the get_phishing_campaign_report.
-    If we checked a phishing report and the person entered data or clicked, then return that info.
-    If they didn't click, weren't in the report, or we didn't run a phishing report, just return an empty string."""
+    If in any of the checked phishing reports the person entered data or clicked, then return that info.
+    If they didn't click, weren't in the report, or we didn't run a phishing report, just return None."""
+    # Default to 'they never clicked or submitted'
+    submitted = False
+    clicked = False
     if email in phishing_report:
-        # data entered assumes clicked already happened
-        if 'data_entered' in phishing_report[email]:
-            if phishing_report[email]['data_entered']:
-                return("This person submitted data, such as a username or password, in a recent last phishing simulation exercise.")
-        if 'clicked' in phishing_report[email]:
-            if phishing_report[email]['clicked']:
-                return("This person clicked the phishing link in a recent phishing simulation exercise, but they stopped before submitting any information to the site.")
-        else:
-            return("")
+        for campaign, campaign_info in phishing_report[email].items():
+            # data entered assumes clicked already happened
+            if 'data_entered' in campaign_info:
+                if campaign_info['data_entered'] != None:
+                    clicked = True
+            if 'clicked' in campaign_info:
+                if campaign_info['clicked'] != None:
+                    submitted = True
+    if submitted:
+        response = "This person submitted data, such as a username or password, in a recent last phishing simulation exercise."
+    elif clicked:
+        response = "This person clicked the phishing link in a recent phishing simulation exercise, but they stopped before submitting any information to the site."
     else:
-        return("")
+        response = None
+    return response
+
 
 
 #########################
@@ -347,28 +359,51 @@ def generate_report_by_division(user_report):
             division_report[division][department][email] = {'training_status': training_status, 'first_name': first_name, 'last_name': last_name, 'display_name': display_name}
     return division_report
 
-def print_division_report(division_report, phishing_report):
-    divisions = list(division_report.keys())
-    divisions.sort()
-    for division in divisions:
-        print("\n\n\nDivision:" + division)
-        print("===============================")
-        departments = list(division_report[division].keys())
-        departments.sort()
-        for department in departments:
-            # Set all-complete as true - at least until it's changed to false.
-            all_completed = True
-            print("\nDepartment: " + department)
-            print("-----------------------------")
-            for email, userinfo in division_report[division][department].items():
-                training_status = userinfo['training_status']
-                display_name = userinfo['display_name']
-                if training_status != "All assigned training complete":
-                    print("{0} ({1}) - Incomplete training: {2}".format(display_name, email, training_status))
-                    all_completed = False
-                    # Have a special addition if they have also recently failed phishing simulations
-                    phishing_status = get_phish_status_by_user(phishing_report, email)
-                    if phishing_status:
-                        print("   Note:" + phishing_status)
-            if all_completed:
-                print("All individuals in this department have completed their assigned training")
+def get_phish_status_by_user(phishing_report, email):
+    """This requires a phish report generated from the get_phishing_campaign_report.
+    If in any of the checked phishing reports the person entered data or clicked, then return that info.
+    If they didn't click, weren't in the report, or we didn't run a phishing report, just return None."""
+    # Default to 'they never clicked or submitted'
+    submitted = False
+    clicked = False
+    if email in phishing_report:
+        for campaign, campaign_info in phishing_report[email].items():
+            # data entered assumes clicked already happened
+            if 'data_entered' in campaign_info:
+                if campaign_info['data_entered'] != None:
+                    clicked = True
+            if 'clicked' in campaign_info:
+                if campaign_info['clicked'] != None:
+                    submitted = True
+    if submitted:
+        response = "This person submitted data, such as a username or password, in a recent last phishing simulation exercise."
+    elif clicked:
+        response = "This person clicked the phishing link in a recent phishing simulation exercise, but they stopped before submitting any information to the site."
+    else:
+        response = None
+    return response
+
+
+def generate_phish_report_by_user(phishing_report):
+    """Get a report by user with all of the phishing simulations (of those selected) that the user
+    reported, clicked on, or submitted data to."""
+    # Do this so my final dictionary is ordered alphabetically
+    from collections import OrderedDict
+    users = list(phishing_report.keys())
+    users.sort()
+    report = OrderedDict()
+    for user in users:
+        for campaign_id in phishing_report[user]:
+            data_entered = phishing_report[user][campaign_id].get('data_entered', None)
+            clicked = phishing_report[user][campaign_id].get('clicked', None)
+            reported = phishing_report[user][campaign_id].get('reported', None)
+            # If the user is not already in the report, create an entry for them
+            if user not in report:
+                report[user] = {'data_entered': [], 'clicked': [], 'reported': []}
+            if data_entered:
+                report[user]['data_entered'].append(data_entered)
+            if clicked:
+                report[user]['clicked'].append(clicked)
+            if reported:
+                report[user]['reported'].append(reported)
+    return report
