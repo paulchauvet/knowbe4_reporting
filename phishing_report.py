@@ -2,6 +2,8 @@
 
 """Go through one or more phishing campaigns.  Generate a report by user of how many times they clicked or submitted data.
 You can use this, for example, to pull the last several phishing simulations, and it will generate reports on those users who have 
+
+Note: This is broken for now - I need to update it to change how it pulls API keys
 """
 
 from knowbe4_functions import select_phishing_campaigns, get_phishing_campaign_report, generate_phish_report_by_user
