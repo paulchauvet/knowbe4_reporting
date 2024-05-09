@@ -1,0 +1,24 @@
+# DO NOT check this file into git or other repositories with real credentials
+# Active Directory
+ad_username: '<A_USER_THAT_CAN_UPDATE_YOUR_GROUP>'
+ad_password: '<PASSWORD_FOR_THAT_USER>'
+ad_url: 'ldaps://<YOUR_AD_SERVERNAME>'
+ad_base: '<YOUR_LDAP_BASE>'
+ad_group_name: 'knowbe4_past_due'
+ad_group_dn: '<FULL_DN_FOR_THE_GROUP_YOU_ARE_UPDATING>'
+
+# KnowBe4 Token
+knowbe4_token: '<KNOWBE4_API_TOKEN>'
+knowbe4_training_year: '2024'
+# Campaign IDs - fill in your own, comma & space separated
+knowbe4_campaign_ids: 13456789, 8675309, 4815162342
+
+# Email info
+# These are for an on-prem mail server that routes externally - if you're going to connect
+# Directly to Google/Microsoft/etc., your mileage may vary
+smtp_server: '<YOUR_SMTP_SERVER>'
+smtp_port: '25'
+smtp_recipient_address: '<RECIPIENT_ADDRESS_WHO_SHOULD_RECEIVE_NOTICES>'
+smtp_sender_address: '<FROM_ADDRESS_FOR_THOSE_NOTICES>'
+smtp_subject: 'Changes made to the KnowBe4 Training Past Due group'
+

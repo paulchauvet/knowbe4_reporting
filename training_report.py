@@ -10,9 +10,8 @@ For us - this info is in our Active Directory for most users, so it is in KnowBe
 If you upload users manually and fill in those values you should be fine as well.
 """
 
-from knowbe4_functions import select_training_campaigns, select_phishing_campaigns, generate_user_training_report, \
-                              get_phishing_campaign_report, get_knowbe4_users, generate_report_by_division, \
-                              get_phish_status_by_user
+from knowbe4_functions import get_config, select_training_campaigns, select_phishing_campaigns, generate_user_training_report, \
+                              get_phishing_campaign_report, get_knowbe4_users, get_phish_status_by_user
 from collections import OrderedDict
 
 def print_division_report(division_report, phishing_report):
@@ -44,24 +43,20 @@ def print_division_report(division_report, phishing_report):
             if all_completed:
                 print("All individuals in this department have completed their assigned training")
 
+CONFIG = get_config()
+KB4_API_TOKEN = CONFIG['knowbe4_token']
 
-CAMPAIGN_IDS = select_training_campaigns()
+CAMPAIGN_IDS = select_training_campaigns(KB4_API_TOKEN)
 
-PHISHING_CAMPAIGN_IDS = select_phishing_campaigns("All")
-PHISHING_REPORT = get_phishing_campaign_report(PHISHING_CAMPAIGN_IDS)
+PHISHING_CAMPAIGN_IDS = select_phishing_campaigns(KB4_API_TOKEN, "All")
+PHISHING_REPORT = get_phishing_campaign_report(KB4_API_TOKEN, PHISHING_CAMPAIGN_IDS)
 
-ACTIVE_USERS = get_knowbe4_users()
+ACTIVE_USERS = get_knowbe4_users(KB4_API_TOKEN)
 
-USER_TRAINING_REPORT = generate_user_training_report(CAMPAIGN_IDS, ACTIVE_USERS)
-DIVISION_REPORT = generate_report_by_division(USER_TRAINING_REPORT)
+USER_TRAINING_REPORT = generate_user_training_report(KB4_API_TOKEN, CAMPAIGN_IDS, ACTIVE_USERS)
 
-# Note: for my internal process - this is replaced with a function that sends an email to each division
-# head, with a list if those who are not compliant sorted by department.
-# Too much of that is organizational specific (primariy the message text) so feel free to write
-# your own version
-# If there's demand - I'll include a cleaned-up version of my own.
-print_division_report(DIVISION_REPORT, PHISHING_REPORT)
-
+for user, userinfo in USER_TRAINING_REPORT.items():
+    print(user, userinfo)
 
 
 

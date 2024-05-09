@@ -25,48 +25,51 @@ blocks all users in that group, from getting access to a set of apps we deem "Hi
 """
 
 from datetime import datetime
-from knowbe4_functions import get_knowbe4_token, generate_user_training_report, get_knowbe4_users, get_past_due_users, get_group_update_lists
+from knowbe4_functions import get_config, generate_user_training_report, get_knowbe4_users, get_past_due_users, get_group_update_lists
 from mail_functions import send_html_email
-from active_directory_functions import get_credentials, create_ad_connection, get_group_membership, update_group_with_report
+from active_directory_functions import create_ad_connection, get_group_membership, update_group_with_report
 
 
 ## Start Configuration
 
-# File name where KnowBe4 token is stored
-KB4_API_TOKEN_FILE = "/opt/its/iam/credentials/knowbe4"
+CONFIG = get_config()
 
-# Name of training past_due group in Active Directory
-TRAINING_PAST_DUE_GROUP = "knowbe4_past_due"
-GROUP_DN = "CN=knowbe4_past_due,OU=npuser,DC=active,DC=newpaltz,DC=edu"
+KB4_API_TOKEN = CONFIG['knowbe4_token']
 
 # This should include a list of the campaign IDs for the year that you are basing this on.
-# It must be updated each January (or as needed for our training cycles) as new training is setup.
-CAMPAIGN_IDS = ['2124339', '2124345', '2124370']
+# It must be updated each January (or as needed for your training cycles) as new training is setup.
+CAMPAIGN_IDS = CONFIG['knowbe4_campaign_ids'].strip().split(", ")
 
 # This determines what year you're looking for training in.
 # For us, we use a yearly training cycle with training offered in the start of January, and that training year closes at
 # the end of the year.  That doens't mean all training is due at the end of the year, but this assumes that new assignments
 # will be created and assigned at the start of each year
-TRAINING_YEAR = 2024
+TRAINING_YEAR = CONFIG['knowbe4_training_year']
 
 # Email config
 # This includes both a person to notify if there are problems or changes, as well as the name/address those emails will come from
-EMAIL_RECIPIENT_ADDRESS = "chauvetp@newpaltz.edu"
-EMAIL_SENDER_ADDRESS = "sysadmin@newpaltz.edu"
-EMAIL_SENDER_NAME = "Systems Admin"
-EMAIL_SUBJECT = f"Changes made to the {TRAINING_PAST_DUE_GROUP}"
+SMTP_SERVER = CONFIG['smtp_server']
+SMTP_PORT = CONFIG['smtp_port']
+EMAIL_RECIPIENT_ADDRESS = CONFIG['smtp_recipient_address']
+EMAIL_SENDER_ADDRESS = CONFIG['smtp_from_address']
+EMAIL_SENDER_NAME = CONFIG['smtp_from_name']
+EMAIL_SUBJECT = CONFIG['smtp_subject']
 
 # Set email host address, and other info in the "mail_functions.py" script, or alter as needed
 
 # Active Directory Config
-AD_URL = "ldaps://adl-lb.newpaltz.edu"
-# Base in AD where users live
-AD_BASE = "dc=active,dc=newpaltz,dc=edu"
-# See credentials.template for an example format
-AD_USER, AD_PASS = get_credentials('active_directory_group_manager')
+AD_URL = CONFIG['ad_url']
+AD_BASE = CONFIG['ad_base']
+AD_USER = CONFIG['ad_username']
+AD_PASS = CONFIG['ad_password']
 
-# People who have been granted a temporary exemption
-EXCEPTIONS = ["harringp"]
+TRAINING_PAST_DUE_GROUP = CONFIG['ad_group_name']
+GROUP_DN = CONFIG['ad_group_dn']
+
+
+# People who have been granted a temporary exemption if needed
+# For example individuals on leave (I'd automate this if I could but don't have access to that data automatically...)
+EXCEPTIONS = []
 
 ## End Configuration
 
@@ -95,7 +98,8 @@ if TRAINING_YEAR == datetime.now().year:
         # From the report, determine which users have past due training
         PAST_DUE_USERS = get_past_due_users(ACTIVE_KNOWBE4_USERS, USER_TRAINING_REPORT)
     except Exception as e:
-        send_html_email("Error with manage_knowbe4_pastdue_group.py script in KB4 information gathering section" + str(e), EMAIL_RECIPIENT_ADDRESS, EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME, "Error with manage_knowbe4_pastdue_group.py script in KB4 information gathering section")
+        send_html_email("Error with manage_knowbe4_pastdue_group.py script in KB4 information gathering section" + str(e), SMTP_SERVER, SMTP_PORT, EMAIL_RECIPIENT_ADDRESS, EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME, "Error with manage_kno
+wbe4_pastdue_group.py script in KB4 information gathering section")
         print("ERROR in kb4 information gathering section!")
         raise
 
@@ -118,7 +122,7 @@ if TRAINING_YEAR == datetime.now().year:
             output_message += update_group_with_report(TRAINING_PAST_DUE_GROUP, GROUP_DN, AD_BASE, AD_CONN, GROUP_ADDITIONS, GROUP_REMOVALS) + "<br />"
 
         except Exception as e:
-            send_html_email("Error with manage_knowbe4_pastdue_group.py script in Group Update section" + str(e), EMAIL_RECIPIENT_ADDRESS, EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME, "Error with manage_knowbe4_pastdue_group.py script in Group Update section")
+            send_html_email("Error with manage_knowbe4_pastdue_group.py script in Group Update section" + str(e), SMTP_SERVER, SMTP_PORT, EMAIL_RECIPIENT_ADDRESS, EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME, "Error with manage_knowbe4_pastdue_group.py script in Group Update section")
             print("ERROR in Group Update section!")
             raise
 
@@ -126,7 +130,7 @@ if TRAINING_YEAR == datetime.now().year:
 
     # Send the email if there have been any changes made
     if output_message != f"The following is a list of changes made to the {TRAINING_PAST_DUE_GROUP} group in Active Directory<br />":
-        send_html_email(output_message, EMAIL_RECIPIENT_ADDRESS, EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME, EMAIL_SUBJECT)
+        send_html_email(output_message, SMTP_SERVER, SMTP_PORT, EMAIL_RECIPIENT_ADDRESS, EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME, EMAIL_SUBJECT)
 
 else:
     print("The TRAINING_YEAR and CAMPAIGN_IDS variables need to be updated")

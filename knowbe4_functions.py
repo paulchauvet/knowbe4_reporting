@@ -48,6 +48,16 @@ import requests
 ## General Section ##
 #####################
 
+def get_config():
+    """Pull credentials or other config info from the knowbe4_config file.  You should ensure your credentials directory is not synced via git.
+    yes - this assumes these are all there.  I will put error handling in sometime for when they are not.
+    A sample file is in knowbe4_config.template"""
+    
+    import yaml
+    with open("credentials/knowbe4_config.yml", 'r') as config_file:
+        config = yaml.safe_load(config_file)
+    return config
+
 
 def get_knowbe4_token(credfilename):
     """Pull the knowbe4 auth token from the credentials directory (which is not synced to git).
@@ -154,10 +164,10 @@ def get_training_campaign_info(knowbe4_api_token, id):
     campaign_info = campaign_report_api.json()
     return campaign_info
 
-def select_training_campaigns():
+def select_training_campaigns(knowbe4_api_token):
     """Prompt for one or more training campaigns to report on"""
     campaign_type = input("\nShould we get all training campaigns (All) or just certain statuses (Completed, Closed, In Progress, etc.):   ").strip()
-    campaigns = list_training_campaigns(campaign_type)
+    campaigns = list_training_campaigns(knowbe4_api_token, campaign_type)
     for campaign_id, campaign_info in campaigns.items():
         print("Campaign ID: {0},Campaign Name: {1}, Campaign_Status: {2},Start Date: {3},End Date: {4}".format(campaign_id, campaign_info['name'], campaign_info['status'], campaign_info['start_date'], campaign_info['end_date']))
     # Prompt for input, but turn a comma separate string into a list (removing spaces)
@@ -285,9 +295,9 @@ def list_phishing_campaigns(knowbe4_api_token, status_to_check="Active"):
         # in the response, then all that will be returned is an empty list.
     return phishing_list
 
-def select_phishing_campaigns(status="Active"):
+def select_phishing_campaigns(knowbe4_api_token, status="Active"):
     """Prompt for one or more phishing campaigns to report on - selecting from active campaigns only"""
-    campaigns = list_phishing_campaigns(status)
+    campaigns = list_phishing_campaigns(knowbe4_api_token, status)
     print("\nPhishing Campaigns")
     for entry in campaigns:
         name, id = entry

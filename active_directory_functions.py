@@ -1,17 +1,20 @@
-def get_credentials(system):
+def get_ad_connection_info():
     """Pull credentials for various systems from their text files.  You should ensure your credentials directory is not synced via git"""
-    if system == "active_directory_group_manager":
-        credfilename = "credentials/active_directory_group_manager"
+    config_file_name = "knowbe4_config"
     #
     # Read the appropriate credentials file
-    credfile = open(credfilename, 'r').readlines()
+    config_file = open(config_file_name, 'r').readlines()
     # Parse through the credentials file
-    for line in credfile:
-        if "username" in line:
+    for line in config_file:
+        if "ad_username:" in line:
             username = line.split(": ")[1].rstrip()
-        if "password" in line:
+        if "ad_password:" in line:
             password = line.split(": ")[1].rstrip()
-    return username, password
+        if "ad_url:" in line:
+            ad_url = line.split(": ")[1].rstrip()
+        if "ad_base:" in line:
+            ad_base = line.split(": ")[1].rstrip()
+    return username, password, ad_url, ad_base
 
 def create_ad_connection(username, password, ldap_url):
     """Create and return LDAP connection"""

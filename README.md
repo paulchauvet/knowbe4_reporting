@@ -8,16 +8,16 @@ this scripted (vs Excel downloads) since I don't have enough time to manually
 chase down people who are doing training.  As often is the case, not having enough
 time in the long-term but having some time in the short-term drives automation.
 
+It started with just reporting, then moved into updating an Active Directory group
+to have all users who are 'past due' on their training (as per the due date on any
+specified training assignments).
+
 The actual KnowBe4 API documentation is available from:
  * [https://developer.knowbe4.com/reporting/](https://developer.knowbe4.com/reporting/)
 
 Note: I am someone who programs, I don't consider myself a programmer.
-I'm certain this can be done better/cleaner, but it met the needs I had:
-  - reporting on training compliance/non-compliance
-  - reporting on phishing simulations
-  - getting reports of non-compliance to division heads at our college as the
-    automated emails about training to the user and their supervisors are often
-    not sufficient to ensure compliance.
+I'm certain this can be done better/cleaner, but it met the needs I had.
+
 
 If you aren't a KnowBe4 customer - I'd highly recommend them.  Their training
 is engaging, their phishing simulation tools are great, their support team
@@ -28,8 +28,8 @@ me I will try to answer questions!
 
 As always - test test test. You should not go running into this connecting
 to the KnowBe4 API getting thousands of queries without testing and rate
-limiting your own connections.  If you get rate limtied by KnowBe4, or they
-set Kevin Mitnick on your organization for revenge, I take no responsibility.
+limiting your own connections.  If you get rate limited by KnowBe4, I take
+no responsibility.
 
 If you use this - and find it useful - let me know!
 If you use it and find errors or would suggest changes, let me know those too!
@@ -39,17 +39,25 @@ way) - you may want to fork this or create your own site from scratch for it.
 
 ## Requirements
 * Python 3.x
+* PyYAML module
+* Python-ldap module
+* smtplib module
+* I may have forgotten a couple - working on pulling this into a clean python virtual environment so I can be specific here)
 * A KnowBe4 account and API token
+* Active Directory (assuming you want to maintain a past_due users group) and a user that can update that group
 
 ## Setup and installation
-Two options:
-* Download the knowbe4_functions.py and use some of those functions as needed in your own code from scratch.
-* Additionally download training_report.py for an example of using them together
-
-Regardless you will have to put your KnowBe4 token in credentials/knowbe4_token (or update the
-get_kb4_token function to get it elsewhere).  Ensure your credentials directory isn't synced to git repos.
+* Copy the knowbe4_config.yml.template to a credentials subdirectory and fill in the variables.  Those include info on your AD server (if you want to use the manage_knowbe4_pastdue_group.py script) and SMTP serer info, as well as the Knowbe4 API token.
+* Test with a test user
+* You may need to do some stuff to trust the certificate on your AD server
 
 ## Usage
+
+### manage_knowbe4_pastdue_group.py
+* complete the config
+* run it - it 
+
+### training_report.py
 If you use the built in training_report.py function, you will be first be asked which training reports to analyze data from.  This can include all training, or just some (Completed, In Progress, Closed).
 
 You will then be show all training modules (or all those in the status you selected) and can select one or more training modules by their training campaign id.

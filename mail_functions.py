@@ -1,13 +1,10 @@
 import smtplib
 
 
-def send_html_email(message_text, recipient_email, sender_email, sender_name, subject, headers=[]):
+def send_html_email(message_text, smtp_server, smtp_port, recipient_email, sender_email, sender_name, subject, headers=[]):
     """Send an HTML email"""
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
-
-    smtp_server_name = "smtp.newpaltz.edu"
-    smtp_port = 25
 
     message = MIMEMultipart("alternative")
     if headers != []:
